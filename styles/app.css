@@ -1,0 +1,17 @@
+.main {
+    display: flex;
+}
+
+.aside {
+    flex-grow: 0.3;
+}
+
+ul {
+    height:200px;
+    overflow:hidden; 
+    overflow-y:scroll;
+}
+
+.content {
+    flex-grow: 0.7;
+}
