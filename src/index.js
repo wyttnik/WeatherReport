@@ -2,10 +2,28 @@ import {OpenMeteoModule} from "./api/weather";
 import * as d3 from "d3";
 
 const openMeteoModule = new OpenMeteoModule();
-openMeteoModule.getCityInfo("Rostov-on-Don").then(res => {
-    openMeteoModule.getTemperature(res.latitude,res.longitude).then(data => {
-        test(data,res.name);
-    });
+var place;
+document.getElementById('place').addEventListener("keypress", (e)=> {
+	if(e.key === 'Enter') {
+		place = document.getElementById('place').value;
+		console.log(place);
+		openMeteoModule.getCityInfo(place).then(res => {
+			console.log(document.body.clientWidth);
+			console.log(screen.width);
+			
+			openMeteoModule.getTemperature(res.latitude,res.longitude).then(data => {
+				
+				test(data,res.name,Math.round(document.body.clientWidth/200));
+				console.log('afaf  ' + Math.round(document.body.clientWidth/200));
+				d3.select(window).on('resize',()=>{
+					console.log(document.body.clientWidth);
+					if (document.body.clientWidth < 500) {
+						test(data,res.name,2);
+					}
+				})
+			});
+		});
+	}
 });
 
 function roundMinutes(date) {
@@ -14,7 +32,7 @@ function roundMinutes(date) {
     date.setMinutes(0, 0, 0); // Resets also seconds and milliseconds
 
     return date;
-}
+};
 
 function getDataStructure(data) {
     const newData = [];
@@ -28,21 +46,25 @@ function timeToMs(data) {
     return data.hourly.time.map(t=>new Date(t).getTime());
 };
 
-function test(data,name) {
-    console.log(data);
+function test(data,name,ticks) {
+    d3.select('svg').remove();
     const dates = timeToMs(data);
     const d = getDataStructure(data);
     
     const margin = { left: 120, right: 120, top: 60, bottom: 30 };
-    const width = document.querySelector("body").clientWidth/2, height = 400;
-    const ticks = 10;
+    const width = document.body.clientWidth/1.5, height = 400;
+    // const ticks = 10;
+    
 
-    const svg = d3.select("body").append('svg').attr("viewBox", [0, 0, width, height]);
+    const svg = d3.select("body").append('svg')
+    .attr('class','weatherBox')
+    .attr("viewBox", [0, 0, width, height]);
     const x_scale = d3.scaleTime().range([margin.left, width - margin.right]);
     const y_scale = d3.scaleLinear().range([height - margin.bottom - margin.top, margin.top]);
     const x_label = "Day";
     const y_label = "Temperature";
     const location_name = name;
+
     
     // add title
     svg.append("text")
@@ -84,20 +106,20 @@ function test(data,name) {
 
     const minMaxDates = d3.extent(d, start_time);
     // set the domain 
-    x_scale.domain(minMaxDates).nice(5);
-    y_scale.domain(d3.extent(d, temperature)).nice(5);
+    x_scale.domain(minMaxDates).nice(ticks);
+    y_scale.domain(d3.extent(d, temperature)).nice(ticks);
 
     // axis
     const x_axis = d3.axisBottom()
     .scale(x_scale)
     .tickPadding(10)
-    .ticks(5)
+    .ticks(ticks)
     .tickSize(-height + margin.top * 2 + margin.bottom);
 
     const y_axis = d3.axisLeft()
     .scale(y_scale)
     .tickPadding(5)
-    .ticks(5, ".1")
+    .ticks(ticks, ".1")
     .tickSize(-width + margin.left + margin.right);
 
     // reform x ticks so that they'll look like Month Day
@@ -110,6 +132,8 @@ function test(data,name) {
         return d + data.hourly_units.temperature_2m;
     });
 
+    
+
     // add the line path
     svg.append("path")
     .datum(d)
@@ -121,6 +145,7 @@ function test(data,name) {
     // add x axis
     svg
     .append("g")
+	.style("opacity", 1)
     .style("font", "7px times")
     .attr("transform", `translate(0,${height - margin.bottom - margin.top})`)
     .call(x_axis);
@@ -168,11 +193,9 @@ function test(data,name) {
     function mousemove(event) {
         // recover coordinate we need
         var x = x_scale.invert(d3.pointer(event)[0]);
-        console.log(x);
         if ((minMaxDates[0] <= x) && (x <= minMaxDates[1])) {
             var i = dates.indexOf(roundMinutes(x).getTime());
             curData = new Date(data.hourly.time[i]);
-            console.log(x);
             curTemp = data.hourly.temperature_2m[i];
             focus
               .attr("cx", x_scale(curData))
