@@ -7,6 +7,7 @@ let loc_name, latitude, longitude, clickCheck = false;
 
 document.getElementById('place').onkeyup = (e)=> {
 	if(e.key === 'Enter') {
+		document.getElementById('listContainer').style.display = 'none';
         if (clickCheck) searchForTemperature(loc_name, latitude, longitude);
         else openMeteoModule.getCities(e.currentTarget.value).then(res => {
             if (res !== undefined) searchForTemperature(res[0].name,
@@ -32,6 +33,7 @@ document.getElementById('place').onclick = ()=> {
 };
 
 document.getElementById('btn').onclick = (e) => {
+	document.getElementById('listContainer').style.display = 'none';
     if (clickCheck) searchForTemperature(loc_name, latitude, longitude);
     else openMeteoModule.getCities(e.currentTarget.previousElementSibling.value).then(res => {
         if (res !== undefined) searchForTemperature(res[0].name,
