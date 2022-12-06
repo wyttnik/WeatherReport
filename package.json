@@ -12,6 +12,8 @@
     "parcel": "^2.7.0"
   },
   "dependencies": {
+    "@parcel/resolver-glob": "^2.7.0",
+    "circle-flags": "git+https://github.com/HatScripts/circle-flags.git",
     "d3": "^7.6.1"
   }
 }

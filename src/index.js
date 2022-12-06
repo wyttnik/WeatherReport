@@ -1,30 +1,85 @@
 import {OpenMeteoModule} from "./api/weather";
 import * as d3 from "d3";
+import logos from "circle-flags/flags/*.svg";
 
 const openMeteoModule = new OpenMeteoModule();
-var place;
-document.getElementById('place').addEventListener("keypress", (e)=> {
+var loc_name, latitude, longitude, clickCheck = false;
+
+document.getElementById('place').onkeyup = (e)=> {
 	if(e.key === 'Enter') {
-		place = document.getElementById('place').value;
-		console.log(place);
-		openMeteoModule.getCityInfo(place).then(res => {
-			console.log(document.body.clientWidth);
-			console.log(screen.width);
-			
-			openMeteoModule.getTemperature(res.latitude,res.longitude).then(data => {
-				
-				test(data,res.name,Math.round(document.body.clientWidth/200));
-				console.log('afaf  ' + Math.round(document.body.clientWidth/200));
-				d3.select(window).on('resize',()=>{
-					console.log(document.body.clientWidth);
-					if (document.body.clientWidth < 500) {
-						test(data,res.name,2);
-					}
-				})
-			});
-		});
-	}
-});
+        if (clickCheck) searchForTemperature(loc_name, latitude, longitude);
+        else openMeteoModule.getCities(e.currentTarget.value).then(res => {
+            if (res !== undefined) searchForTemperature(res[0].name,
+                res[0].latitude,res[0].longitude);
+        });
+    }
+    else{
+        clickCheck = false;
+        openMeteoModule.getCities(e.currentTarget.value).then(res => {
+            const listContainer = document.getElementById("listContainer");
+            if (res !== undefined) showResults(res, listContainer);
+        });
+    }
+};
+
+document.onclick = (e) => {
+    if (!document.getElementById('area').contains(e.target))
+        document.getElementById('listContainer').style.display = 'none';
+};
+
+document.getElementById('place').onclick = ()=> {
+	document.getElementById('listContainer').style.display = 'block';
+};
+
+document.getElementById('btn').onclick = (e) => {
+    console.log(clickCheck);
+    if (clickCheck) searchForTemperature(loc_name, latitude, longitude);
+    else openMeteoModule.getCities(e.currentTarget.previousElementSibling.value).then(res => {
+        if (res !== undefined) searchForTemperature(res[0].name,
+            res[0].latitude,res[0].longitude);
+    });
+};
+
+function showResults(results, container){
+    const list = document.createElement("ul");
+    results.forEach(res=>{
+        const item = document.createElement("li");
+        item.textContent = ` ${res.name} `;
+        item.classList.add('option');
+        item.setAttribute('latitude', res.latitude);
+        item.setAttribute('longitude', res.longitude);
+        item.setAttribute('placeName', res.name);
+        
+        const flag = document.createElement("img");
+        flag.src = logos[res.country_code.toLowerCase()];
+        flag.width = '20';
+        item.prepend(flag);
+
+        const admin1 = document.createElement("small");
+        admin1.textContent = res.country + ' ' + (res.admin1 ? res.admin1 : '');
+        admin1.classList.add('smallText');
+        item.appendChild(admin1);
+
+        list.appendChild(item);
+        item.onclick = (e) => {
+            clickCheck = true;
+            loc_name = e.currentTarget.getAttribute('placeName');
+            latitude = e.currentTarget.getAttribute('latitude');
+            longitude = e.currentTarget.getAttribute('longitude');
+            document.getElementById('place').value = loc_name;
+            e.currentTarget.parentElement.parentElement.style.display = 'none';
+            searchForTemperature(loc_name, latitude, longitude);
+        };
+    })
+    container.replaceChildren(list);
+};
+
+function searchForTemperature(name,lat,long) {
+    openMeteoModule.getTemperature(lat,long).then(data => {
+        drawGraph(data,name,8);
+        console.log(Math.round(document.body.clientWidth/200));
+    });
+};
 
 function roundMinutes(date) {
     
@@ -46,13 +101,13 @@ function timeToMs(data) {
     return data.hourly.time.map(t=>new Date(t).getTime());
 };
 
-function test(data,name,ticks) {
+function drawGraph(data,name,ticks) {
     d3.select('svg').remove();
     const dates = timeToMs(data);
     const d = getDataStructure(data);
     
     const margin = { left: 120, right: 120, top: 60, bottom: 30 };
-    const width = document.body.clientWidth/1.5, height = 400;
+    const width = 900, height = 400;
     // const ticks = 10;
     
 
@@ -63,9 +118,7 @@ function test(data,name,ticks) {
     const y_scale = d3.scaleLinear().range([height - margin.bottom - margin.top, margin.top]);
     const x_label = "Day";
     const y_label = "Temperature";
-    const location_name = name;
 
-    
     // add title
     svg.append("text")
     .attr("class", "svg_title")
@@ -73,7 +126,7 @@ function test(data,name,ticks) {
     .attr("y", margin.top / 2)
     .attr("text-anchor", "middle")
     .style("font-size", "22px")
-    .text(`${y_label} in ${location_name}`);
+    .text(`${y_label} in ${name}`);
     
     // add y label
     svg.append("text")
@@ -132,8 +185,6 @@ function test(data,name,ticks) {
         return d + data.hourly_units.temperature_2m;
     });
 
-    
-
     // add the line path
     svg.append("path")
     .datum(d)
@@ -174,34 +225,35 @@ function test(data,name,ticks) {
     .attr("alignment-baseline", "middle");
 
     svg
-    .append('rect')
-    .style("fill", "none")
-    .style("pointer-events", "all")
-    .attr('width', 10)
-    .attr('height', 10);
-
-    svg
     .on('mouseover', mouseover)
     .on('mousemove', mousemove)
     .on('mouseout', mouseout);
 
-    function mouseover() {
-        focus.style("opacity", 1)
-        focusText.style("opacity",1)
+    var x;
+    function mouseover(e) {
+        x = x_scale.invert(d3.pointer(e)[0]);
+        if ((minMaxDates[0] <= x) && (x <= minMaxDates[1])) {
+            focus.style("opacity", 1)
+            focusText.style("opacity",1)
+        }
     };
 
     function mousemove(event) {
         // recover coordinate we need
-        var x = x_scale.invert(d3.pointer(event)[0]);
+        x = x_scale.invert(d3.pointer(event)[0]);
+        var formatDate;
         if ((minMaxDates[0] <= x) && (x <= minMaxDates[1])) {
             var i = dates.indexOf(roundMinutes(x).getTime());
             curData = new Date(data.hourly.time[i]);
+            console.log(curData);
             curTemp = data.hourly.temperature_2m[i];
+            formatDate = curData.toString().split(' ');
             focus
               .attr("cx", x_scale(curData))
               .attr("cy", y_scale(curTemp))
             focusText
-              .html(curData.toDateString().substr(4,6) + "  -  " + curTemp + data.hourly_units.temperature_2m)
+              .html(formatDate[2] + ' ' + formatDate[1] + ' ' + formatDate[4].substr(0,5) 
+                + ' ' + curTemp + data.hourly_units.temperature_2m)
               .attr("x", x_scale(curData)+15)
               .attr("y", y_scale(curTemp))
         }
@@ -212,4 +264,4 @@ function test(data,name,ticks) {
         focusText.style("opacity", 0)
     };
 
-}
+};

@@ -5,10 +5,10 @@ class OpenMeteoModule{
       this.weatherUrl = weatherUrl;
     };
 
-    getCityInfo(name) {
+    getCities(name) {
       return fetch(this.geoUrl+'name='+name)
         .then(res => res.json())
-        .then(data=>data.results[0]);
+        .then(data => data.results);
     };
 
     getTemperature(lat,long) {
