@@ -237,7 +237,7 @@ function drawGraph(data,name,ticks) {
     function mousemove(event) {
         // recover coordinate we need
         x = x_scale.invert(d3.pointer(event)[0]);
-        let formatDate, curData;
+        let formatDate, curData, curTemp;
         if ((minMaxDates[0] <= x) && (x <= minMaxDates[1])) {
             let i = dates.indexOf(roundMinutes(x).getTime());
             curData = new Date(data.hourly.time[i]);
