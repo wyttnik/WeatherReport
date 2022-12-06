@@ -1,2 +1,2 @@
 # WeatherReport
-In progress
+https://wyttnik.github.io/WeatherReport/
