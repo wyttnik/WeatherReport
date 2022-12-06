@@ -3,7 +3,7 @@ import * as d3 from "d3";
 import logos from "circle-flags/flags/*.svg";
 
 const openMeteoModule = new OpenMeteoModule();
-var loc_name, latitude, longitude, clickCheck = false;
+let loc_name, latitude, longitude, clickCheck = false;
 
 document.getElementById('place').onkeyup = (e)=> {
 	if(e.key === 'Enter') {
@@ -82,14 +82,14 @@ function searchForTemperature(name,lat,long) {
 function roundMinutes(date) {
     
     date.setHours(date.getHours() + Math.round(date.getMinutes()/60));
-    date.setMinutes(0, 0, 0); // Resets also seconds and milliseconds
+    date.setMinutes(0, 0, 0); // Reset seconds and milliseconds
 
     return date;
 };
 
 function getDataStructure(data) {
     const newData = [];
-    for (var i = 0; i < data.hourly.time.length; i++) {
+    for (let i = 0; i < data.hourly.time.length; i++) {
         newData[i] = {time:data.hourly.time[i],temp:data.hourly.temperature_2m[i]};
     };
     return newData;
@@ -225,7 +225,7 @@ function drawGraph(data,name,ticks) {
     .on('mousemove', mousemove)
     .on('mouseout', mouseout);
 
-    var x;
+    let x;
     function mouseover(e) {
         x = x_scale.invert(d3.pointer(e)[0]);
         if ((minMaxDates[0] <= x) && (x <= minMaxDates[1])) {
@@ -237,9 +237,9 @@ function drawGraph(data,name,ticks) {
     function mousemove(event) {
         // recover coordinate we need
         x = x_scale.invert(d3.pointer(event)[0]);
-        var formatDate, curData;
+        let formatDate, curData;
         if ((minMaxDates[0] <= x) && (x <= minMaxDates[1])) {
-            var i = dates.indexOf(roundMinutes(x).getTime());
+            let i = dates.indexOf(roundMinutes(x).getTime());
             curData = new Date(data.hourly.time[i]);
             curTemp = data.hourly.temperature_2m[i];
             formatDate = curData.toString().split(' ');
